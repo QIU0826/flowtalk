@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Typography, Tag, Button, message } from 'antd';
-import { CopyOutlined } from '@ant-design/icons';
+import { CopyOutlined, ReloadOutlined } from '@ant-design/icons';
 import { SceneType } from '../types';
 
 interface PolishedPaneProps {
@@ -8,7 +8,9 @@ interface PolishedPaneProps {
   isStreaming: boolean;
   scene: SceneType;
   polishDone: boolean;
+  hasError: boolean;
   sentenceProgress?: { done: number; total: number };
+  onRetry?: () => void;
 }
 
 const sceneLabels: Record<SceneType, string> = {
@@ -24,7 +26,9 @@ export default function PolishedPane({
   isStreaming,
   scene,
   polishDone,
+  hasError,
   sentenceProgress,
+  onRetry,
 }: PolishedPaneProps) {
   const [flash, setFlash] = useState(false);
   const prevPolishDone = useRef(false);
@@ -48,7 +52,7 @@ export default function PolishedPane({
     );
   };
 
-  if (!text && !isStreaming) {
+  if (!text && !isStreaming && !hasError) {
     return (
       <div className="flex items-center justify-center h-full text-gray-400 select-none">
         <Typography.Text type="secondary">改写结果将显示在这里</Typography.Text>
@@ -65,7 +69,7 @@ export default function PolishedPane({
         padding: 4,
       }}
     >
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
         <Tag color="indigo">{sceneLabels[scene]}</Tag>
         {isStreaming && (
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
@@ -82,17 +86,35 @@ export default function PolishedPane({
             完成
           </Typography.Text>
         )}
-        {polishDone && text && (
-          <Button
-            type="text"
-            size="small"
-            icon={<CopyOutlined />}
-            onClick={handleCopy}
-            style={{ marginLeft: 'auto', fontSize: 12 }}
-          >
-            {scene === 'code' ? '复制代码' : '复制'}
-          </Button>
+        {hasError && !isStreaming && (
+          <Typography.Text type="danger" style={{ fontSize: 12 }}>
+            改写失败
+          </Typography.Text>
         )}
+
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
+          {hasError && !isStreaming && onRetry && (
+            <Button
+              type="text"
+              size="small"
+              icon={<ReloadOutlined />}
+              onClick={onRetry}
+              danger
+            >
+              重试
+            </Button>
+          )}
+          {polishDone && text && (
+            <Button
+              type="text"
+              size="small"
+              icon={<CopyOutlined />}
+              onClick={handleCopy}
+            >
+              {scene === 'code' ? '复制代码' : '复制'}
+            </Button>
+          )}
+        </div>
       </div>
 
       <Typography.Paragraph
@@ -106,9 +128,10 @@ export default function PolishedPane({
           background: scene === 'code' ? '#f8f9fa' : undefined,
           padding: scene === 'code' ? '12px 16px' : undefined,
           borderRadius: scene === 'code' ? 8 : undefined,
+          color: hasError && !text ? '#999' : undefined,
         }}
       >
-        {text}
+        {hasError && !text ? '请点击重试按钮重新生成' : text}
         {isStreaming && (
           <span className="streaming-cursor" />
         )}

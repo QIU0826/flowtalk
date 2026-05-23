@@ -35,6 +35,7 @@ export default function App() {
   const [polishedText, setPolishedText] = useState('');
   const polishedTextRef = useRef('');
   const polishDoneRef = useRef(false);
+  const [hasRewriteError, setHasRewriteError] = useState(false);
 
   // History
   const { items: historyItems, addItem, removeItem, clearAll } = useHistory();
@@ -51,6 +52,7 @@ export default function App() {
 
   const handleError = useCallback((err: string) => {
     setError(err);
+    setHasRewriteError(true);
     message.error(err);
   }, []);
 
@@ -87,6 +89,7 @@ export default function App() {
 
   const handlePolishDone = useCallback(() => {
     polishDoneRef.current = true;
+    setHasRewriteError(false);
 
     // Save to history
     const rawText = sentences.join('');
@@ -162,9 +165,19 @@ export default function App() {
     setSentenceTexts(new Map());
     setPolishedText('');
     polishDoneRef.current = false;
+    setHasRewriteError(false);
     setError(null);
     resetRewrite();
   }, [resetRewrite]);
+
+  // Retry rewrite
+  const handleRetry = useCallback(() => {
+    const rawText = sentences.join('');
+    if (!rawText.trim()) return;
+    setHasRewriteError(false);
+    polishDoneRef.current = false;
+    startPolish(rawText, sceneRef.current);
+  }, [sentences, startPolish]);
 
   // Restore from history
   const handleRestore = useCallback((item: HistoryItem) => {
@@ -274,7 +287,9 @@ export default function App() {
                 isStreaming={isPolishing}
                 polishDone={polishDoneRef.current}
                 scene={scene}
+                hasError={hasRewriteError}
                 sentenceProgress={sentenceProgress}
+                onRetry={handleRetry}
               />
             </Card>
           )}
