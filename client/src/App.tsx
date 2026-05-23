@@ -33,7 +33,9 @@ export default function App() {
 
   const { items: historyItems, addItem, removeItem, clearAll } = useHistory();
 
-  // Refs to break stale closures — keep latest callbacks accessible from stable handlers
+  // Refs to break stale closures and track latest values
+  const sentencesRef = useRef<string[]>([]);
+  sentencesRef.current = sentences;
   const startPolishRef = useRef<(text: string, scene: string) => void>(() => {});
   const addSentenceRef = useRef<(sentence: string, scene: string) => void>(() => {});
   const startRef = useRef<() => void>(() => {});
@@ -163,6 +165,19 @@ export default function App() {
     };
   }, []);
 
+  // Scene auto-rewrite: when scene changes and content exists, re-polish with new scene
+  const sceneInitializedRef = useRef(false);
+  useEffect(() => {
+    if (!sceneInitializedRef.current) {
+      sceneInitializedRef.current = true;
+      return;
+    }
+    const rawText = sentencesRef.current.join('');
+    if (!rawText.trim()) return;
+    if (isRecordingRef.current || isPolishing) return;
+    startPolishRef.current(rawText, sceneRef.current);
+  }, [scene]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleClear = useCallback(() => {
     setSentences([]);
     setInterim('');
@@ -221,7 +236,7 @@ export default function App() {
         <SceneSelector
           value={scene}
           onChange={setScene}
-          disabled={isRecording || isPolishing}
+          disabled={isRecording}
         />
       </Header>
 
