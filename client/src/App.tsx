@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Layout, Typography, Card, Button, message, Popconfirm } from 'antd';
-import { SoundOutlined, ClearOutlined } from '@ant-design/icons';
+import { SoundOutlined, ClearOutlined, BookOutlined } from '@ant-design/icons';
 import { useSpeechRecognition } from './hooks/useSpeechRecognition';
 import { useRewrite } from './hooks/useRewrite';
 import { useHistory, HistoryItem } from './hooks/useHistory';
@@ -10,6 +10,7 @@ import RawPane from './components/RawPane';
 import PolishedPane from './components/PolishedPane';
 import SceneSelector from './components/SceneSelector';
 import HistoryPanel from './components/HistoryPanel';
+import DictManager from './components/DictManager';
 import { SceneType } from './types';
 
 const { Header, Content } = Layout;
@@ -45,7 +46,8 @@ export default function App() {
   const [hasRewriteError, setHasRewriteError] = useState(false);
 
   const { items: historyItems, addItem, removeItem, clearAll } = useHistory();
-  const { learnFromEdit, getDictContext } = usePersonalDict();
+  const { learnFromEdit, getDictContext, corrections, removeCorrection, clearAll: clearDict } = usePersonalDict();
+  const [dictOpen, setDictOpen] = useState(false);
 
   // Refs to break stale closures and track latest values
   const sentencesRef = useRef<string[]>([]);
@@ -301,11 +303,24 @@ export default function App() {
             FlowTalk
           </Typography.Title>
         </div>
-        <SceneSelector
-          value={scene}
-          onChange={setScene}
-          disabled={isRecording}
-        />
+        <div className="flex items-center gap-3">
+          <Button
+            type="text"
+            size="small"
+            icon={<BookOutlined />}
+            onClick={() => setDictOpen(true)}
+          >
+            词库
+            {corrections.length > 0 && (
+              <span className="ml-1 text-xs text-indigo-500">({corrections.length})</span>
+            )}
+          </Button>
+          <SceneSelector
+            value={scene}
+            onChange={setScene}
+            disabled={isRecording}
+          />
+        </div>
       </Header>
 
       <Content className="p-6 max-w-5xl mx-auto w-full">
@@ -405,6 +420,13 @@ export default function App() {
           />
         </div>
       </Content>
+      <DictManager
+        open={dictOpen}
+        corrections={corrections}
+        onClose={() => setDictOpen(false)}
+        onDelete={removeCorrection}
+        onClearAll={clearDict}
+      />
     </Layout>
   );
 }
