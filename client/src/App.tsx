@@ -14,6 +14,14 @@ import { SceneType } from './types';
 
 const { Header, Content } = Layout;
 
+const sceneLabels: Record<SceneType, string> = {
+  general: '通用',
+  email: '邮件',
+  chat: '聊天',
+  meeting: '纪要',
+  code: '代码',
+};
+
 export default function App() {
   const [sentences, setSentences] = useState<string[]>([]);
   const [interim, setInterim] = useState('');
@@ -196,6 +204,7 @@ export default function App() {
     const rawText = sentencesRef.current.join('');
     if (!rawText.trim()) return;
     if (isRecordingRef.current || isPolishing) return;
+    message.info(`正在用「${sceneLabels[sceneRef.current]}」场景重新改写…`, 1.5);
     startPolishRef.current(rawText, sceneRef.current);
   }, [scene]); // eslint-disable-line react-hooks/exhaustive-deps
 
