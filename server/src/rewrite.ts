@@ -45,6 +45,20 @@ const SCENE_PROMPTS: Record<string, { system: string; sentence: string }> = {
 规则：使用正式语气、段落分明。注意商务场景常见术语的准确性。`,
   },
 
+  emailCasual: {
+    system: `你是一个轻量邮件助手。将语音转录改写为适合工作沟通的邮件文字，语气自然随意。
+
+规则：
+1. 根据语境判断是否需要称呼和落款（非必须，同事间可省略）
+2. 使用自然流畅的表达，像同事间钉钉/微信沟通
+3. 段落简短精练，不要太正式
+4. 去除语气词但保留适度的口语感和情绪表达
+5. 常见商务术语优先：Q1/Q2、OKR、KPI、复盘、迭代、对齐、排期、交付`,
+
+    sentence: `你是一个轻量邮件助手。将语音转录改写为适合工作沟通的文字。
+规则：自然随意、段落简短、像同事间沟通。注意商务术语的准确性。`,
+  },
+
   chat: {
     system: `你是一个聊天辅助工具。将语音转录改写为适合即时通讯的文字。
 
@@ -109,8 +123,14 @@ const SCENE_PROMPTS: Record<string, { system: string; sentence: string }> = {
 
 // ─── Builder functions ────────────────────────────────────────────
 
-function buildPolishPrompt(fullText: string, scene: string): string {
-  const template = SCENE_PROMPTS[scene] || SCENE_PROMPTS.general;
+function getTemplateKey(scene: string, emailStyle?: string): string {
+  if (scene === 'email' && emailStyle === 'casual') return 'emailCasual';
+  return scene;
+}
+
+function buildPolishPrompt(fullText: string, scene: string, emailStyle?: string): string {
+  const key = getTemplateKey(scene, emailStyle);
+  const template = SCENE_PROMPTS[key] || SCENE_PROMPTS.general;
 
   return `${template.system}
 
@@ -129,8 +149,10 @@ function buildSentencePrompt(
   sentence: string,
   context: { previousPolished?: string } | undefined,
   scene: string,
+  emailStyle?: string,
 ): string {
-  const template = SCENE_PROMPTS[scene] || SCENE_PROMPTS.general;
+  const key = getTemplateKey(scene, emailStyle);
+  const template = SCENE_PROMPTS[key] || SCENE_PROMPTS.general;
   let prompt = template.sentence;
 
   if (context?.previousPolished) {
@@ -192,8 +214,9 @@ export async function rewriteSentence(
   scene: string,
   dictContext: string,
   res: Response,
+  emailStyle?: string,
 ): Promise<void> {
-  let prompt = buildSentencePrompt(sentence, context, scene || 'general');
+  let prompt = buildSentencePrompt(sentence, context, scene || 'general', emailStyle);
   if (dictContext) {
     prompt = `${dictContext}\n\n${prompt}`;
   }
@@ -206,8 +229,9 @@ export async function rewritePolish(
   dictContext: string,
   model: string,
   res: Response,
+  emailStyle?: string,
 ): Promise<void> {
-  let prompt = buildPolishPrompt(fullText, scene || 'general');
+  let prompt = buildPolishPrompt(fullText, scene || 'general', emailStyle);
   if (dictContext) {
     prompt = `${dictContext}\n\n${prompt}`;
   }
