@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Typography } from 'antd';
+import { useState, useRef, useEffect } from 'react';
+import { Typography, Tooltip } from 'antd';
 import { CloseOutlined } from '@ant-design/icons';
 
 interface RawPaneProps {
@@ -18,6 +18,18 @@ export default function RawPane({
   onDeleteSentence,
 }: RawPaneProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [showSeparatorHint, setShowSeparatorHint] = useState(false);
+  const hintShownRef = useRef(false);
+
+  useEffect(() => {
+    if (sessionBreakpoints && sessionBreakpoints.length > 1 && !hintShownRef.current) {
+      hintShownRef.current = true;
+      setShowSeparatorHint(true);
+      const timer = setTimeout(() => setShowSeparatorHint(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [sessionBreakpoints]);
+
   const hasContent = sentences.length > 0 || interim;
 
   if (!hasContent) {
@@ -47,9 +59,15 @@ export default function RawPane({
             {isSessionStart && i > 0 && (
               <div className="flex items-center gap-2 my-3">
                 <div className="flex-1 border-t border-dashed border-gray-200" />
-                <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                  新一段
-                </Typography.Text>
+                <Tooltip
+                  title="追加模式：再次按住说话时自动插入分隔线"
+                  open={showSeparatorHint}
+                  color="#6366f1"
+                >
+                  <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+                    新一段
+                  </Typography.Text>
+                </Tooltip>
                 <div className="flex-1 border-t border-dashed border-gray-200" />
               </div>
             )}
