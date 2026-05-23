@@ -14,25 +14,25 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.post('/api/rewrite/sentence', async (req, res) => {
-  const { sentence, context, scene } = req.body || {};
+  const { sentence, context, scene, dictContext } = req.body || {};
 
   if (!sentence || typeof sentence !== 'string' || sentence.trim().length === 0) {
     res.status(400).json({ error: 'sentence is required' });
     return;
   }
 
-  await rewriteSentence(sentence.trim(), context, scene || 'general', res);
+  await rewriteSentence(sentence.trim(), context, scene || 'general', dictContext || '', res);
 });
 
 app.post('/api/rewrite/polish', async (req, res) => {
-  const { text, scene } = req.body || {};
+  const { text, scene, dictContext } = req.body || {};
 
   if (!text || typeof text !== 'string' || text.trim().length === 0) {
     res.status(400).json({ error: 'text is required' });
     return;
   }
 
-  await rewritePolish(text.trim(), scene || 'general', res);
+  await rewritePolish(text.trim(), scene || 'general', dictContext || '', res);
 });
 
 app.listen(PORT, () => {

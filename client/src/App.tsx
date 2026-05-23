@@ -4,6 +4,7 @@ import { SoundOutlined, ClearOutlined } from '@ant-design/icons';
 import { useSpeechRecognition } from './hooks/useSpeechRecognition';
 import { useRewrite } from './hooks/useRewrite';
 import { useHistory, HistoryItem } from './hooks/useHistory';
+import { usePersonalDict } from './hooks/usePersonalDict';
 import RecordButton from './components/RecordButton';
 import RawPane from './components/RawPane';
 import PolishedPane from './components/PolishedPane';
@@ -36,6 +37,7 @@ export default function App() {
   const [hasRewriteError, setHasRewriteError] = useState(false);
 
   const { items: historyItems, addItem, removeItem, clearAll } = useHistory();
+  const { learnFromEdit, getDictContext } = usePersonalDict();
 
   // Refs to break stale closures and track latest values
   const sentencesRef = useRef<string[]>([]);
@@ -116,6 +118,7 @@ export default function App() {
     onPolishText: handlePolishText,
     onPolishDone: handlePolishDone,
     onError: handleError,
+    getDictContext,
   });
 
   // Keep refs in sync with latest callbacks
@@ -195,6 +198,18 @@ export default function App() {
     if (isRecordingRef.current || isPolishing) return;
     startPolishRef.current(rawText, sceneRef.current);
   }, [scene]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleEdit = useCallback(
+    (newText: string) => {
+      const oldText = polishedTextRef.current;
+      if (oldText && oldText !== newText) {
+        learnFromEdit(oldText, newText, sceneRef.current);
+      }
+      setPolishedText(newText);
+      polishedTextRef.current = newText;
+    },
+    [learnFromEdit],
+  );
 
   const handleClear = useCallback(() => {
     setSentences([]);
@@ -329,6 +344,7 @@ export default function App() {
                 hasError={hasRewriteError}
                 sentenceProgress={sentenceProgress}
                 onRetry={handleRetry}
+                onEdit={handleEdit}
               />
             </Card>
           )}
