@@ -6,7 +6,7 @@
 
 ## Demo 视频
 
-> [Demo 视频链接]（待上传至 B站/云盘后更新）
+[FlowTalk - AI语音输入工具 Demo](https://www.bilibili.com/video/BV1xxGi6LE4d/)
 
 ## 功能特性
 
