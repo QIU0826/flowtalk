@@ -42,7 +42,7 @@ export default function App() {
   // Refs to break stale closures and track latest values
   const sentencesRef = useRef<string[]>([]);
   sentencesRef.current = sentences;
-  const startPolishRef = useRef<(text: string, scene: string) => void>(() => {});
+  const startPolishRef = useRef<(text: string, scene: string, model?: string) => void>(() => {});
   const addSentenceRef = useRef<(sentence: string, scene: string) => void>(() => {});
   const startRef = useRef<() => void>(() => {});
   const stopRef = useRef<() => void>(() => {});
@@ -246,7 +246,7 @@ export default function App() {
     const rawText = sentences.join('');
     if (!rawText.trim()) return;
     polishDoneRef.current = false;
-    startPolishRef.current(rawText, sceneRef.current);
+    startPolishRef.current(rawText, sceneRef.current, 'deepseek-v4-pro');
   }, [sentences]);
 
   const handleRetry = useCallback(() => {

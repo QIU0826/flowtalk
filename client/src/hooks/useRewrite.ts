@@ -12,7 +12,7 @@ interface UseRewriteOptions {
 
 interface UseRewriteReturn {
   addSentence: (sentence: string, scene: string) => void;
-  startPolish: (fullText: string, scene: string) => void;
+  startPolish: (fullText: string, scene: string, model?: string) => void;
   isPolishing: boolean;
   reset: () => void;
 }
@@ -153,7 +153,7 @@ export function useRewrite(options: UseRewriteOptions): UseRewriteReturn {
   );
 
   const startPolish = useCallback(
-    (fullText: string, scene: string) => {
+    (fullText: string, scene: string, model?: string) => {
       setIsPolishing(true);
 
       // Cancel pending sentence rewrites
@@ -166,7 +166,7 @@ export function useRewrite(options: UseRewriteOptions): UseRewriteReturn {
 
       streamConsume(
         '/api/rewrite/polish',
-        { text: fullText, scene, dictContext: getDictContext?.() || '' },
+        { text: fullText, scene, dictContext: getDictContext?.() || '', model },
         (chunk) => {
           polishedText += chunk;
           onPolishText(polishedText);

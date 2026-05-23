@@ -166,6 +166,15 @@ Web Speech API                    Express + CORS
 
 ## 开发记录
 
-本项目为 2026 TRAE AI 全栈挑战赛参赛作品（课题：语音输入法），3天开发周期（2026.05.23–05.25）。
+本项目为七牛云 XEngineer 暑期实训营「第一批次议题」参赛作品（课题：语音输入法），3天开发周期（2026.05.23–05.25）。
+
+## 后续优化方向
+
+- **动态模型路由**：根据 Web Speech API 返回的 confidence 值决定逐句改写使用 Flash 还是 Pro。低置信度句子自动升级为 Pro 重写
+- **方言支持**：替换 Web Speech API 为云端 STT（如 Azure Speech），支持粤语、四川话等方言
+- **多模态输入**：支持粘贴图片/截图中的文字进行改写
+- **端侧模型**：探索 on-device LLM 做实时改写，降低延迟和云端成本
+
+## 开发记录
 
 PR 记录详见 [GitHub Pull Requests](https://github.com/QIU0826/flowtalk/pulls)。
