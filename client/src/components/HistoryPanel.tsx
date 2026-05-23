@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { Card, List, Typography, Tag, Button, Popconfirm } from 'antd';
-import { DeleteOutlined, HistoryOutlined } from '@ant-design/icons';
+import { DeleteOutlined, HistoryOutlined, DownOutlined, RightOutlined } from '@ant-design/icons';
 import { HistoryItem } from '../hooks/useHistory';
 import { SceneType } from '../types';
 
@@ -25,51 +26,51 @@ function formatTime(ts: number): string {
 }
 
 export default function HistoryPanel({ items, onRestore, onDelete, onClearAll }: HistoryPanelProps) {
-  if (items.length === 0) {
-    return (
-      <Card
-        title={
-          <span className="flex items-center gap-2">
-            <HistoryOutlined />
-            历史记录
-          </span>
-        }
-        size="small"
-        styles={{ body: { padding: '16px 0' } }}
-      >
-        <div className="text-center text-gray-400 py-8">
-          <Typography.Text type="secondary">暂无记录</Typography.Text>
-        </div>
-      </Card>
-    );
-  }
+  const [collapsed, setCollapsed] = useState(true);
 
   return (
     <Card
       title={
-        <span className="flex items-center gap-2">
+        <span
+          className="flex items-center gap-2 cursor-pointer select-none"
+          onClick={() => setCollapsed(!collapsed)}
+        >
+          {collapsed ? <RightOutlined style={{ fontSize: 11 }} /> : <DownOutlined style={{ fontSize: 11 }} />}
           <HistoryOutlined />
           历史记录
+          {items.length > 0 && (
+            <Typography.Text type="secondary" style={{ fontSize: 12, fontWeight: 400 }}>
+              ({items.length})
+            </Typography.Text>
+          )}
         </span>
       }
       extra={
-        <Popconfirm
-          title="清空全部历史记录？"
-          onConfirm={onClearAll}
-          okText="确认"
-          cancelText="取消"
-        >
-          <Button type="text" size="small" danger>
-            清空
-          </Button>
-        </Popconfirm>
+        items.length > 0 && !collapsed && (
+          <Popconfirm
+            title="清空全部历史记录？"
+            onConfirm={onClearAll}
+            okText="确认"
+            cancelText="取消"
+          >
+            <Button type="text" size="small" danger>
+              清空
+            </Button>
+          </Popconfirm>
+        )
       }
       size="small"
-      styles={{ body: { padding: 0, maxHeight: 360, overflow: 'auto' } }}
+      styles={{ body: collapsed ? { padding: 0 } : { padding: 0, maxHeight: 360, overflow: 'auto' } }}
     >
-      <List
-        dataSource={items}
-        renderItem={(item) => (
+      {!collapsed && items.length === 0 && (
+        <div className="text-center text-gray-400 py-8">
+          <Typography.Text type="secondary">暂无记录</Typography.Text>
+        </div>
+      )}
+      {!collapsed && items.length > 0 && (
+        <List
+          dataSource={items}
+          renderItem={(item) => (
           <List.Item
             onClick={() => onRestore(item)}
             style={{
@@ -110,8 +111,9 @@ export default function HistoryPanel({ items, onRestore, onDelete, onClearAll }:
               }
             />
           </List.Item>
-        )}
-      />
+          )}
+        />
+      )}
     </Card>
   );
 }
