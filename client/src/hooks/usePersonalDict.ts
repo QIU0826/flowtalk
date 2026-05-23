@@ -69,6 +69,8 @@ function extractCorrections(oldText: string, newText: string, scene: string): Co
 interface UsePersonalDictReturn {
   corrections: Correction[];
   learnFromEdit: (oldText: string, newText: string, scene: string) => void;
+  removeCorrection: (timestamp: number) => void;
+  clearAll: () => void;
   getDictContext: () => string;
 }
 
@@ -84,7 +86,6 @@ export function usePersonalDict(): UsePersonalDictReturn {
     if (extracted.length === 0) return;
     setCorrections((prev) => {
       const merged = [...extracted, ...prev];
-      // Deduplicate by wrong word (keep newest)
       const seen = new Set<string>();
       return merged.filter((c) => {
         const key = c.wrong;
@@ -95,6 +96,14 @@ export function usePersonalDict(): UsePersonalDictReturn {
     });
   }, []);
 
+  const removeCorrection = useCallback((timestamp: number) => {
+    setCorrections((prev) => prev.filter((c) => c.timestamp !== timestamp));
+  }, []);
+
+  const clearAll = useCallback(() => {
+    setCorrections([]);
+  }, []);
+
   const getDictContext = useCallback(() => {
     if (corrections.length === 0) return '';
     const recent = corrections.slice(0, 10);
@@ -102,5 +111,5 @@ export function usePersonalDict(): UsePersonalDictReturn {
     return `用户词库（以下为当前用户常纠正的词对，改写时请优先采用纠正后的词）：\n${lines.join('\n')}`;
   }, [corrections]);
 
-  return { corrections, learnFromEdit, getDictContext };
+  return { corrections, learnFromEdit, removeCorrection, clearAll, getDictContext };
 }
