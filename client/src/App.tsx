@@ -62,10 +62,16 @@ export default function App() {
   const stopRef = useRef<() => void>(() => {});
   const isRecordingRef = useRef(false);
 
+  // Scene result cache: avoid redundant API calls when switching back
+  interface CacheEntry { polished: string; rawText: string; emailStyle: string }
+  const sceneCacheRef = useRef<Map<string, CacheEntry>>(new Map());
+  const invalidateCache = () => { sceneCacheRef.current.clear(); };
+
   const handleFinal = useCallback((sentence: string) => {
     setSentences((prev) => [...prev, sentence]);
     addSentenceRef.current(sentence, sceneRef.current, emailStyleRef.current);
     setInterim('');
+    invalidateCache();
   }, []);
 
   const handleInterim = useCallback((text: string) => {
@@ -111,7 +117,15 @@ export default function App() {
     polishDoneRef.current = true;
     setHasRewriteError(false);
 
+    // Save to scene cache
     const rawText = sentences.join('');
+    if (rawText.trim() && polishedTextRef.current) {
+      sceneCacheRef.current.set(sceneRef.current, {
+        polished: polishedTextRef.current,
+        rawText,
+        emailStyle: emailStyleRef.current,
+      });
+    }
     const finalPolished = polishedTextRef.current;
     if (rawText.trim() && finalPolished) {
       const duration = sessionStartRef.current
@@ -200,7 +214,7 @@ export default function App() {
     };
   }, []);
 
-  // Scene auto-rewrite: when scene changes and content exists, re-polish with new scene
+  // Scene auto-rewrite: when scene changes and content exists, check cache first
   const sceneInitializedRef = useRef(false);
   useEffect(() => {
     if (!sceneInitializedRef.current) {
@@ -210,6 +224,18 @@ export default function App() {
     const rawText = sentencesRef.current.join('');
     if (!rawText.trim()) return;
     if (isRecordingRef.current || isPolishing) return;
+
+    const cached = sceneCacheRef.current.get(scene);
+    if (cached && cached.rawText === rawText && cached.emailStyle === emailStyleRef.current) {
+      // Cache hit: restore immediately, no API call
+      setPolishedText(cached.polished);
+      polishedTextRef.current = cached.polished;
+      polishDoneRef.current = true;
+      setSentenceTexts(new Map());
+      setHasRewriteError(false);
+      return;
+    }
+
     message.info(`正在用「${sceneLabels[sceneRef.current]}」场景重新改写…`, 1.5);
     startPolishRef.current(rawText, sceneRef.current, undefined, emailStyleRef.current);
   }, [scene]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -236,10 +262,12 @@ export default function App() {
     setHasRewriteError(false);
     setError(null);
     resetRewrite();
+    invalidateCache();
   }, [resetRewrite]);
 
   const handleDeleteSentence = useCallback(
     (index: number) => {
+      invalidateCache();
       setSentences((prev) => {
         const next = prev.filter((_, i) => i !== index);
         if (next.length === 0) {
@@ -249,7 +277,6 @@ export default function App() {
           polishDoneRef.current = false;
           return [];
         }
-        // Re-trigger polish with remaining sentences
         startPolishRef.current(next.join(''), sceneRef.current, undefined, emailStyleRef.current);
         return next;
       });
@@ -260,6 +287,7 @@ export default function App() {
   const handleRegenerate = useCallback(() => {
     const rawText = sentences.join('');
     if (!rawText.trim()) return;
+    sceneCacheRef.current.delete(sceneRef.current);
     polishDoneRef.current = false;
     startPolishRef.current(rawText, sceneRef.current, 'deepseek-v4-pro', emailStyleRef.current);
   }, [sentences]);
@@ -267,6 +295,7 @@ export default function App() {
   const handleRetry = useCallback(() => {
     const rawText = sentences.join('');
     if (!rawText.trim()) return;
+    sceneCacheRef.current.delete(sceneRef.current);
     setHasRewriteError(false);
     polishDoneRef.current = false;
     startPolishRef.current(rawText, sceneRef.current, undefined, emailStyleRef.current);
