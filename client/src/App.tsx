@@ -223,6 +223,32 @@ export default function App() {
     resetRewrite();
   }, [resetRewrite]);
 
+  const handleDeleteSentence = useCallback(
+    (index: number) => {
+      setSentences((prev) => {
+        const next = prev.filter((_, i) => i !== index);
+        if (next.length === 0) {
+          setSessions([]);
+          setSentenceTexts(new Map());
+          setPolishedText('');
+          polishDoneRef.current = false;
+          return [];
+        }
+        // Re-trigger polish with remaining sentences
+        startPolishRef.current(next.join(''), sceneRef.current);
+        return next;
+      });
+    },
+    [],
+  );
+
+  const handleRegenerate = useCallback(() => {
+    const rawText = sentences.join('');
+    if (!rawText.trim()) return;
+    polishDoneRef.current = false;
+    startPolishRef.current(rawText, sceneRef.current);
+  }, [sentences]);
+
   const handleRetry = useCallback(() => {
     const rawText = sentences.join('');
     if (!rawText.trim()) return;
@@ -325,6 +351,7 @@ export default function App() {
               interim={interim}
               isRecording={isRecording}
               sessionBreakpoints={sessions}
+              onDeleteSentence={handleDeleteSentence}
             />
           </Card>
 
@@ -345,6 +372,7 @@ export default function App() {
                 sentenceProgress={sentenceProgress}
                 onRetry={handleRetry}
                 onEdit={handleEdit}
+                onRegenerate={handleRegenerate}
               />
             </Card>
           )}
