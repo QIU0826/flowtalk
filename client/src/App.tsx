@@ -22,6 +22,10 @@ export default function App() {
   const sceneRef = useRef<SceneType>('general');
   sceneRef.current = scene;
 
+  const [clickMode, setClickMode] = useState(false);
+  const clickModeRef = useRef(false);
+  clickModeRef.current = clickMode;
+
   const [sessions, setSessions] = useState<number[]>([]);
   const sessionStartRef = useRef<number>(0);
 
@@ -145,17 +149,31 @@ export default function App() {
       e.preventDefault();
       spaceHeldRef.current = true;
       spaceJustReleasedRef.current = false;
-      if (!isRecordingRef.current) {
-        sessionStartRef.current = Date.now();
+
+      if (clickModeRef.current) {
+        // Click mode: space toggles recording
+        if (isRecordingRef.current) {
+          stopRef.current();
+        } else {
+          sessionStartRef.current = Date.now();
+          startRef.current();
+        }
+      } else {
+        // Hold mode: start immediately
+        if (!isRecordingRef.current) {
+          sessionStartRef.current = Date.now();
+        }
+        startRef.current();
       }
-      startRef.current();
     };
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.code !== 'Space') return;
       e.preventDefault();
       spaceHeldRef.current = false;
       spaceJustReleasedRef.current = true;
-      stopRef.current();
+      if (!clickModeRef.current) {
+        stopRef.current();
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
@@ -246,6 +264,8 @@ export default function App() {
             isRecording={isRecording}
             isSupported={isSupported}
             duration={duration}
+            clickMode={clickMode}
+            onModeChange={setClickMode}
             onStart={() => {
               sessionStartRef.current = Date.now();
               start();
