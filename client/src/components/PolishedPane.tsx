@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Typography, Tag, Button, Input, message } from 'antd';
-import { CopyOutlined, ReloadOutlined } from '@ant-design/icons';
+import { CopyOutlined, ReloadOutlined, SwapOutlined } from '@ant-design/icons';
 import { SceneType } from '../types';
 
 interface PolishedPaneProps {
@@ -12,6 +12,7 @@ interface PolishedPaneProps {
   sentenceProgress?: { done: number; total: number };
   onRetry?: () => void;
   onEdit?: (newText: string) => void;
+  onRegenerate?: () => void;
 }
 
 const sceneLabels: Record<SceneType, string> = {
@@ -31,6 +32,7 @@ export default function PolishedPane({
   sentenceProgress,
   onRetry,
   onEdit,
+  onRegenerate,
 }: PolishedPaneProps) {
   const [flash, setFlash] = useState(false);
   const prevPolishDone = useRef(false);
@@ -126,6 +128,11 @@ export default function PolishedPane({
           {hasError && !isStreaming && onRetry && (
             <Button type="text" size="small" icon={<ReloadOutlined />} onClick={onRetry} danger>
               重试
+            </Button>
+          )}
+          {polishDone && text && onRegenerate && (
+            <Button type="text" size="small" icon={<SwapOutlined />} onClick={onRegenerate}>
+              换种说法
             </Button>
           )}
           {polishDone && text && (
