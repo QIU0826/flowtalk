@@ -22,27 +22,27 @@ export default function App() {
   const sceneRef = useRef<SceneType>('general');
   sceneRef.current = scene;
 
-  // Append mode: track recording sessions for separator
   const [sessions, setSessions] = useState<number[]>([]);
-
-  // Timing
   const sessionStartRef = useRef<number>(0);
 
-  // Sentence-level rewrite results
   const [sentenceTexts, setSentenceTexts] = useState<Map<number, string>>(new Map());
-
-  // Global polish result
   const [polishedText, setPolishedText] = useState('');
   const polishedTextRef = useRef('');
   const polishDoneRef = useRef(false);
   const [hasRewriteError, setHasRewriteError] = useState(false);
 
-  // History
   const { items: historyItems, addItem, removeItem, clearAll } = useHistory();
+
+  // Refs to break stale closures — keep latest callbacks accessible from stable handlers
+  const startPolishRef = useRef<(text: string, scene: string) => void>(() => {});
+  const addSentenceRef = useRef<(sentence: string, scene: string) => void>(() => {});
+  const startRef = useRef<() => void>(() => {});
+  const stopRef = useRef<() => void>(() => {});
+  const isRecordingRef = useRef(false);
 
   const handleFinal = useCallback((sentence: string) => {
     setSentences((prev) => [...prev, sentence]);
-    addSentence(sentence, sceneRef.current);
+    addSentenceRef.current(sentence, sceneRef.current);
     setInterim('');
   }, []);
 
@@ -57,16 +57,14 @@ export default function App() {
   }, []);
 
   const handleStateChange = useCallback((recording: boolean) => {
+    isRecordingRef.current = recording;
     setIsRecording(recording);
     if (!recording) {
       setSentences((current) => {
         if (current.length > 0) {
           polishDoneRef.current = false;
-
-          // Record this session's sentence range
           setSessions((prev) => [...prev, current.length]);
-
-          startPolish(current.join(''), sceneRef.current);
+          startPolishRef.current(current.join(''), sceneRef.current);
         }
         return current;
       });
@@ -91,7 +89,6 @@ export default function App() {
     polishDoneRef.current = true;
     setHasRewriteError(false);
 
-    // Save to history
     const rawText = sentences.join('');
     const finalPolished = polishedTextRef.current;
     if (rawText.trim() && finalPolished) {
@@ -115,6 +112,10 @@ export default function App() {
     onError: handleError,
   });
 
+  // Keep refs in sync with latest callbacks
+  startPolishRef.current = startPolish;
+  addSentenceRef.current = addSentence;
+
   const sentenceProgress = isPolishing
     ? { done: 0, total: 0 }
     : { done: sentenceTexts.size, total: sentences.length };
@@ -126,28 +127,33 @@ export default function App() {
     onStateChange: handleStateChange,
   });
 
-  // Keyboard shortcut: space bar
+  // Keep start/stop refs in sync
+  startRef.current = start;
+  stopRef.current = stop;
+
+  // Stable keyboard handler — use refs to avoid listener churn
   const spaceHeldRef = useRef(false);
+  const spaceJustReleasedRef = useRef(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space' && !spaceHeldRef.current) {
-        const target = e.target as HTMLElement;
-        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
-        e.preventDefault();
-        spaceHeldRef.current = true;
-        if (!isRecording) {
-          sessionStartRef.current = Date.now();
-        }
-        start();
+      if (e.code !== 'Space' || spaceHeldRef.current) return;
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+      e.preventDefault();
+      spaceHeldRef.current = true;
+      spaceJustReleasedRef.current = false;
+      if (!isRecordingRef.current) {
+        sessionStartRef.current = Date.now();
       }
+      startRef.current();
     };
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.code === 'Space') {
-        e.preventDefault();
-        spaceHeldRef.current = false;
-        stop();
-      }
+      if (e.code !== 'Space') return;
+      e.preventDefault();
+      spaceHeldRef.current = false;
+      spaceJustReleasedRef.current = true;
+      stopRef.current();
     };
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
@@ -155,9 +161,8 @@ export default function App() {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [start, stop, isRecording]);
+  }, []);
 
-  // Clear all
   const handleClear = useCallback(() => {
     setSentences([]);
     setInterim('');
@@ -170,21 +175,20 @@ export default function App() {
     resetRewrite();
   }, [resetRewrite]);
 
-  // Retry rewrite
   const handleRetry = useCallback(() => {
     const rawText = sentences.join('');
     if (!rawText.trim()) return;
     setHasRewriteError(false);
     polishDoneRef.current = false;
-    startPolish(rawText, sceneRef.current);
-  }, [sentences, startPolish]);
+    startPolishRef.current(rawText, sceneRef.current);
+  }, [sentences]);
 
-  // Restore from history
   const handleRestore = useCallback((item: HistoryItem) => {
     setSentences([item.raw]);
     setSessions([1]);
     setSentenceTexts(new Map());
     setPolishedText(item.polished);
+    polishedTextRef.current = item.polished;
     polishDoneRef.current = true;
     setScene(item.scene);
   }, []);
