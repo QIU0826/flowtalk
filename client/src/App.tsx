@@ -112,6 +112,10 @@ export default function App() {
     onError: handleError,
   });
 
+  const sentenceProgress = isPolishing
+    ? { done: 0, total: 0 }
+    : { done: sentenceTexts.size, total: sentences.length };
+
   const { isSupported, start, stop, duration } = useSpeechRecognition({
     onFinal: handleFinal,
     onInterim: handleInterim,
@@ -270,6 +274,7 @@ export default function App() {
                 isStreaming={isPolishing}
                 polishDone={polishDoneRef.current}
                 scene={scene}
+                sentenceProgress={sentenceProgress}
               />
             </Card>
           )}

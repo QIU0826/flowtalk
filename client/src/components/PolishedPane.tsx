@@ -8,6 +8,7 @@ interface PolishedPaneProps {
   isStreaming: boolean;
   scene: SceneType;
   polishDone: boolean;
+  sentenceProgress?: { done: number; total: number };
 }
 
 const sceneLabels: Record<SceneType, string> = {
@@ -18,7 +19,13 @@ const sceneLabels: Record<SceneType, string> = {
   code: '代码',
 };
 
-export default function PolishedPane({ text, isStreaming, scene, polishDone }: PolishedPaneProps) {
+export default function PolishedPane({
+  text,
+  isStreaming,
+  scene,
+  polishDone,
+  sentenceProgress,
+}: PolishedPaneProps) {
   const [flash, setFlash] = useState(false);
   const prevPolishDone = useRef(false);
 
@@ -65,6 +72,11 @@ export default function PolishedPane({ text, isStreaming, scene, polishDone }: P
             生成中...
           </Typography.Text>
         )}
+        {sentenceProgress && sentenceProgress.total > 0 && (
+          <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+            ({sentenceProgress.done}/{sentenceProgress.total})
+          </Typography.Text>
+        )}
         {polishDone && (
           <Typography.Text type="success" style={{ fontSize: 12 }}>
             完成
@@ -96,10 +108,30 @@ export default function PolishedPane({ text, isStreaming, scene, polishDone }: P
           borderRadius: scene === 'code' ? 8 : undefined,
         }}
       >
-        {text || (
+        {text}
+        {isStreaming && (
+          <span className="streaming-cursor" />
+        )}
+        {!text && isStreaming && (
           <span className="inline-block w-2 h-4 bg-indigo-400 animate-pulse rounded-sm align-middle" />
         )}
       </Typography.Paragraph>
+
+      <style>{`
+        .streaming-cursor {
+          display: inline-block;
+          width: 2px;
+          height: 1.1em;
+          background: #6366f1;
+          margin-left: 1px;
+          vertical-align: text-bottom;
+          animation: blink-cursor 0.8s step-end infinite;
+        }
+        @keyframes blink-cursor {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 }
