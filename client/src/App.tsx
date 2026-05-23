@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Layout, Typography, Card, Button, message } from 'antd';
+import { Layout, Typography, Card, Button, message, Popconfirm } from 'antd';
 import { SoundOutlined, ClearOutlined } from '@ant-design/icons';
 import { useSpeechRecognition } from './hooks/useSpeechRecognition';
 import { useRewrite } from './hooks/useRewrite';
@@ -304,15 +304,22 @@ export default function App() {
           <Typography.Text type="secondary" style={{ fontSize: 13 }}>
             {hasContent ? `${sentences.join('').length} 字` : '按住按钮或空格键开始'}
           </Typography.Text>
-          <Button
-            type="text"
-            size="small"
-            icon={<ClearOutlined />}
-            onClick={handleClear}
-            disabled={!hasContent || isRecording || isPolishing}
+          <Popconfirm
+            title="确定清空当前全部内容？"
+            onConfirm={handleClear}
+            okText="确定"
+            cancelText="取消"
+            placement="bottomRight"
           >
-            清空
-          </Button>
+            <Button
+              type="text"
+              size="small"
+              icon={<ClearOutlined />}
+              disabled={!hasContent || isRecording || isPolishing}
+            >
+              清空
+            </Button>
+          </Popconfirm>
         </div>
 
         <div
