@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { Typography, Tag, Button, Input, message } from 'antd';
-import { CopyOutlined, ReloadOutlined, SwapOutlined } from '@ant-design/icons';
+import { Typography, Tag, Button, Input, message, Dropdown } from 'antd';
+import type { MenuProps } from 'antd';
+import { CopyOutlined, ReloadOutlined, SwapOutlined, DownloadOutlined } from '@ant-design/icons';
 import { SceneType } from '../types';
+import { exportMarkdown, exportHTML, exportDocx } from '../utils/export';
 
 interface PolishedPaneProps {
   text: string;
@@ -69,6 +71,22 @@ export default function PolishedPane({
       onEdit(editingText);
     }
   };
+
+  const handleExport = (format: 'md' | 'html' | 'docx') => {
+    const content = editingText || text;
+    switch (format) {
+      case 'md': exportMarkdown(content); break;
+      case 'html': exportHTML(content); break;
+      case 'docx': exportDocx(content); break;
+    }
+    message.success(`已导出为 ${format.toUpperCase()} 文件`);
+  };
+
+  const exportMenuItems: MenuProps['items'] = [
+    { key: 'md', label: 'Markdown (.md)', onClick: () => handleExport('md') },
+    { key: 'html', label: 'HTML (.html)', onClick: () => handleExport('html') },
+    { key: 'docx', label: 'Word (.docx)', onClick: () => handleExport('docx') },
+  ];
 
   const isEditable = polishDone && !isStreaming && !hasError && text;
 
@@ -139,6 +157,13 @@ export default function PolishedPane({
             <Button type="text" size="small" icon={<CopyOutlined />} onClick={handleCopy}>
               {scene === 'code' ? '复制代码' : '复制'}
             </Button>
+          )}
+          {polishDone && text && scene === 'meeting' && (
+            <Dropdown menu={{ items: exportMenuItems }} placement="bottomRight" trigger={['click']}>
+              <Button type="text" size="small" icon={<DownloadOutlined />}>
+                导出
+              </Button>
+            </Dropdown>
           )}
         </div>
       </div>
