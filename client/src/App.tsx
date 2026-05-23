@@ -1,12 +1,14 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Layout, Typography, Card, message } from 'antd';
-import { SoundOutlined } from '@ant-design/icons';
+import { Layout, Typography, Card, Button, message } from 'antd';
+import { SoundOutlined, ClearOutlined } from '@ant-design/icons';
 import { useSpeechRecognition } from './hooks/useSpeechRecognition';
 import { useRewrite } from './hooks/useRewrite';
+import { useHistory, HistoryItem } from './hooks/useHistory';
 import RecordButton from './components/RecordButton';
 import RawPane from './components/RawPane';
 import PolishedPane from './components/PolishedPane';
 import SceneSelector from './components/SceneSelector';
+import HistoryPanel from './components/HistoryPanel';
 import { SceneType } from './types';
 
 const { Header, Content } = Layout;
@@ -20,12 +22,22 @@ export default function App() {
   const sceneRef = useRef<SceneType>('general');
   sceneRef.current = scene;
 
+  // Append mode: track recording sessions for separator
+  const [sessions, setSessions] = useState<number[]>([]);
+
+  // Timing
+  const sessionStartRef = useRef<number>(0);
+
   // Sentence-level rewrite results
   const [sentenceTexts, setSentenceTexts] = useState<Map<number, string>>(new Map());
 
   // Global polish result
   const [polishedText, setPolishedText] = useState('');
+  const polishedTextRef = useRef('');
   const polishDoneRef = useRef(false);
+
+  // History
+  const { items: historyItems, addItem, removeItem, clearAll } = useHistory();
 
   const handleFinal = useCallback((sentence: string) => {
     setSentences((prev) => [...prev, sentence]);
@@ -48,6 +60,10 @@ export default function App() {
       setSentences((current) => {
         if (current.length > 0) {
           polishDoneRef.current = false;
+
+          // Record this session's sentence range
+          setSessions((prev) => [...prev, current.length]);
+
           startPolish(current.join(''), sceneRef.current);
         }
         return current;
@@ -65,14 +81,31 @@ export default function App() {
 
   const handlePolishText = useCallback((text: string) => {
     setPolishedText(text);
+    polishedTextRef.current = text;
     setSentenceTexts(new Map());
   }, []);
 
   const handlePolishDone = useCallback(() => {
     polishDoneRef.current = true;
-  }, []);
 
-  const { addSentence, startPolish, isPolishing } = useRewrite({
+    // Save to history
+    const rawText = sentences.join('');
+    const finalPolished = polishedTextRef.current;
+    if (rawText.trim() && finalPolished) {
+      const duration = sessionStartRef.current
+        ? Math.round((Date.now() - sessionStartRef.current) / 1000)
+        : 0;
+      addItem({
+        raw: rawText,
+        polished: finalPolished,
+        scene: sceneRef.current,
+        timestamp: Date.now(),
+        duration,
+      });
+    }
+  }, [sentences, addItem]);
+
+  const { addSentence, startPolish, isPolishing, reset: resetRewrite } = useRewrite({
     onSentenceText: handleSentenceText,
     onPolishText: handlePolishText,
     onPolishDone: handlePolishDone,
@@ -96,6 +129,9 @@ export default function App() {
         if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
         e.preventDefault();
         spaceHeldRef.current = true;
+        if (!isRecording) {
+          sessionStartRef.current = Date.now();
+        }
         start();
       }
     };
@@ -112,7 +148,29 @@ export default function App() {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [start, stop]);
+  }, [start, stop, isRecording]);
+
+  // Clear all
+  const handleClear = useCallback(() => {
+    setSentences([]);
+    setInterim('');
+    setSessions([]);
+    setSentenceTexts(new Map());
+    setPolishedText('');
+    polishDoneRef.current = false;
+    setError(null);
+    resetRewrite();
+  }, [resetRewrite]);
+
+  // Restore from history
+  const handleRestore = useCallback((item: HistoryItem) => {
+    setSentences([item.raw]);
+    setSessions([1]);
+    setSentenceTexts(new Map());
+    setPolishedText(item.polished);
+    polishDoneRef.current = true;
+    setScene(item.scene);
+  }, []);
 
   const hasContent = sentences.length > 0 || !!interim;
 
@@ -152,13 +210,33 @@ export default function App() {
             isRecording={isRecording}
             isSupported={isSupported}
             duration={duration}
-            onStart={start}
+            onStart={() => {
+              sessionStartRef.current = Date.now();
+              start();
+            }}
             onStop={stop}
           />
         </div>
 
+        <div className="flex items-center justify-between mb-3 mt-4">
+          <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+            {hasContent ? `${sentences.join('').length} 字` : '按住按钮或空格键开始'}
+          </Typography.Text>
+          {hasContent && (
+            <Button
+              type="text"
+              size="small"
+              icon={<ClearOutlined />}
+              onClick={handleClear}
+              disabled={isRecording || isPolishing}
+            >
+              清空
+            </Button>
+          )}
+        </div>
+
         <div
-          className="grid gap-4 mt-4"
+          className="grid gap-4"
           style={{
             gridTemplateColumns: hasContent ? '1fr 1fr' : '1fr',
             minHeight: 300,
@@ -175,6 +253,7 @@ export default function App() {
               sentences={sentences}
               interim={interim}
               isRecording={isRecording}
+              sessionBreakpoints={sessions}
             />
           </Card>
 
@@ -201,6 +280,15 @@ export default function App() {
             <Typography.Text type="danger">{error}</Typography.Text>
           </div>
         )}
+
+        <div className="mt-6">
+          <HistoryPanel
+            items={historyItems}
+            onRestore={handleRestore}
+            onDelete={removeItem}
+            onClearAll={clearAll}
+          />
+        </div>
       </Content>
     </Layout>
   );
