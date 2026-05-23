@@ -6,7 +6,8 @@ const client = new OpenAI({
   baseURL: process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com',
 });
 
-const MODEL = 'deepseek-v4-flash';
+const FLASH_MODEL = 'deepseek-v4-flash';
+const PRO_MODEL = 'deepseek-v4-pro';
 
 // ─── Scene prompt templates ───────────────────────────────────────
 
@@ -150,10 +151,11 @@ async function streamToSSE(
   prompt: string,
   res: Response,
   maxTokens: number,
+  model: string = FLASH_MODEL,
 ): Promise<void> {
   try {
     const stream = await client.chat.completions.create({
-      model: MODEL,
+      model,
       messages: [{ role: 'user', content: prompt }],
       stream: true,
       temperature: 0.3,
@@ -199,18 +201,19 @@ export async function rewriteSentence(
   if (dictContext) {
     prompt = `${dictContext}\n\n${prompt}`;
   }
-  await streamToSSE(prompt, res, 500);
+  await streamToSSE(prompt, res, 500, FLASH_MODEL);
 }
 
 export async function rewritePolish(
   fullText: string,
   scene: string,
   dictContext: string,
+  model: string,
   res: Response,
 ): Promise<void> {
   let prompt = buildPolishPrompt(fullText, scene || 'general');
   if (dictContext) {
     prompt = `${dictContext}\n\n${prompt}`;
   }
-  await streamToSSE(prompt, res, 2000);
+  await streamToSSE(prompt, res, 2000, model);
 }

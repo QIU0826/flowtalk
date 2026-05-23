@@ -25,14 +25,14 @@ app.post('/api/rewrite/sentence', async (req, res) => {
 });
 
 app.post('/api/rewrite/polish', async (req, res) => {
-  const { text, scene, dictContext } = req.body || {};
+  const { text, scene, dictContext, model } = req.body || {};
 
   if (!text || typeof text !== 'string' || text.trim().length === 0) {
     res.status(400).json({ error: 'text is required' });
     return;
   }
 
-  await rewritePolish(text.trim(), scene || 'general', dictContext || '', res);
+  await rewritePolish(text.trim(), scene || 'general', dictContext || '', model || 'deepseek-v4-flash', res);
 });
 
 app.listen(PORT, () => {
