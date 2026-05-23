@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Layout, Typography, Card, Button, message, Popconfirm } from 'antd';
+import { Layout, Typography, Card, Button, message, Popconfirm, Segmented } from 'antd';
 import { SoundOutlined, ClearOutlined, BookOutlined } from '@ant-design/icons';
 import { useSpeechRecognition } from './hooks/useSpeechRecognition';
 import { useRewrite } from './hooks/useRewrite';
@@ -11,7 +11,7 @@ import PolishedPane from './components/PolishedPane';
 import SceneSelector from './components/SceneSelector';
 import HistoryPanel from './components/HistoryPanel';
 import DictManager from './components/DictManager';
-import { SceneType } from './types';
+import { SceneType, EmailStyle } from './types';
 
 const { Header, Content } = Layout;
 
@@ -31,6 +31,10 @@ export default function App() {
   const [scene, setScene] = useState<SceneType>('general');
   const sceneRef = useRef<SceneType>('general');
   sceneRef.current = scene;
+
+  const [emailStyle, setEmailStyle] = useState<EmailStyle>('formal');
+  const emailStyleRef = useRef<EmailStyle>('formal');
+  emailStyleRef.current = emailStyle;
 
   const [clickMode, setClickMode] = useState(false);
   const clickModeRef = useRef(false);
@@ -52,15 +56,15 @@ export default function App() {
   // Refs to break stale closures and track latest values
   const sentencesRef = useRef<string[]>([]);
   sentencesRef.current = sentences;
-  const startPolishRef = useRef<(text: string, scene: string, model?: string) => void>(() => {});
-  const addSentenceRef = useRef<(sentence: string, scene: string) => void>(() => {});
+  const startPolishRef = useRef<(text: string, scene: string, model?: string, emailStyle?: string) => void>(() => {});
+  const addSentenceRef = useRef<(sentence: string, scene: string, emailStyle?: string) => void>(() => {});
   const startRef = useRef<() => void>(() => {});
   const stopRef = useRef<() => void>(() => {});
   const isRecordingRef = useRef(false);
 
   const handleFinal = useCallback((sentence: string) => {
     setSentences((prev) => [...prev, sentence]);
-    addSentenceRef.current(sentence, sceneRef.current);
+    addSentenceRef.current(sentence, sceneRef.current, emailStyleRef.current);
     setInterim('');
   }, []);
 
@@ -82,7 +86,7 @@ export default function App() {
         if (current.length > 0) {
           polishDoneRef.current = false;
           setSessions((prev) => [...prev, current.length]);
-          startPolishRef.current(current.join(''), sceneRef.current);
+          startPolishRef.current(current.join(''), sceneRef.current, undefined, emailStyleRef.current);
         }
         return current;
       });
@@ -207,7 +211,7 @@ export default function App() {
     if (!rawText.trim()) return;
     if (isRecordingRef.current || isPolishing) return;
     message.info(`正在用「${sceneLabels[sceneRef.current]}」场景重新改写…`, 1.5);
-    startPolishRef.current(rawText, sceneRef.current);
+    startPolishRef.current(rawText, sceneRef.current, undefined, emailStyleRef.current);
   }, [scene]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleEdit = useCallback(
@@ -246,7 +250,7 @@ export default function App() {
           return [];
         }
         // Re-trigger polish with remaining sentences
-        startPolishRef.current(next.join(''), sceneRef.current);
+        startPolishRef.current(next.join(''), sceneRef.current, undefined, emailStyleRef.current);
         return next;
       });
     },
@@ -257,7 +261,7 @@ export default function App() {
     const rawText = sentences.join('');
     if (!rawText.trim()) return;
     polishDoneRef.current = false;
-    startPolishRef.current(rawText, sceneRef.current, 'deepseek-v4-pro');
+    startPolishRef.current(rawText, sceneRef.current, 'deepseek-v4-pro', emailStyleRef.current);
   }, [sentences]);
 
   const handleRetry = useCallback(() => {
@@ -265,7 +269,7 @@ export default function App() {
     if (!rawText.trim()) return;
     setHasRewriteError(false);
     polishDoneRef.current = false;
-    startPolishRef.current(rawText, sceneRef.current);
+    startPolishRef.current(rawText, sceneRef.current, undefined, emailStyleRef.current);
   }, [sentences]);
 
   const handleRestore = useCallback((item: HistoryItem) => {
@@ -320,6 +324,17 @@ export default function App() {
             onChange={setScene}
             disabled={isRecording}
           />
+          {scene === 'email' && (
+            <Segmented
+              size="small"
+              value={emailStyle}
+              onChange={(val) => setEmailStyle(val as EmailStyle)}
+              options={[
+                { value: 'formal', label: '正式' },
+                { value: 'casual', label: '轻量' },
+              ]}
+            />
+          )}
         </div>
       </Header>
 

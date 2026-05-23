@@ -11,8 +11,8 @@ interface UseRewriteOptions {
 }
 
 interface UseRewriteReturn {
-  addSentence: (sentence: string, scene: string) => void;
-  startPolish: (fullText: string, scene: string, model?: string) => void;
+  addSentence: (sentence: string, scene: string, emailStyle?: string) => void;
+  startPolish: (fullText: string, scene: string, model?: string, emailStyle?: string) => void;
   isPolishing: boolean;
   reset: () => void;
 }
@@ -111,7 +111,7 @@ export function useRewrite(options: UseRewriteOptions): UseRewriteReturn {
   );
 
   const addSentence = useCallback(
-    (sentence: string, scene: string) => {
+    (sentence: string, scene: string, emailStyle?: string) => {
       const index = sentenceIndexRef.current++;
 
       // Set timeout for this sentence
@@ -128,6 +128,7 @@ export function useRewrite(options: UseRewriteOptions): UseRewriteReturn {
         {
           sentence,
           scene,
+          emailStyle,
           dictContext: getDictContext?.() || '',
           context: lastPolishedTextRef.current
             ? { previousPolished: lastPolishedTextRef.current }
@@ -153,7 +154,7 @@ export function useRewrite(options: UseRewriteOptions): UseRewriteReturn {
   );
 
   const startPolish = useCallback(
-    (fullText: string, scene: string, model?: string) => {
+    (fullText: string, scene: string, model?: string, emailStyle?: string) => {
       setIsPolishing(true);
 
       // Cancel pending sentence rewrites
@@ -166,7 +167,7 @@ export function useRewrite(options: UseRewriteOptions): UseRewriteReturn {
 
       streamConsume(
         '/api/rewrite/polish',
-        { text: fullText, scene, dictContext: getDictContext?.() || '', model },
+        { text: fullText, scene, dictContext: getDictContext?.() || '', model, emailStyle },
         (chunk) => {
           polishedText += chunk;
           onPolishText(polishedText);
