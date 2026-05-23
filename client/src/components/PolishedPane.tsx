@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Typography, Tag, Button, Input, message, Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
-import { CopyOutlined, ReloadOutlined, SwapOutlined, DownloadOutlined } from '@ant-design/icons';
+import { CopyOutlined, ReloadOutlined, SwapOutlined, DownloadOutlined, SendOutlined } from '@ant-design/icons';
 import { SceneType } from '../types';
 import { exportMarkdown, exportHTML, exportDocx } from '../utils/export';
 
@@ -88,6 +88,30 @@ export default function PolishedPane({
     { key: 'docx', label: 'Word (.docx)', onClick: () => handleExport('docx') },
   ];
 
+  const emailProviders = [
+    { name: 'QQ邮箱', url: 'https://mail.qq.com' },
+    { name: 'Gmail', url: 'https://mail.google.com' },
+    { name: '163邮箱', url: 'https://mail.163.com' },
+    { name: 'Outlook', url: 'https://outlook.live.com' },
+  ];
+
+  const handleSendEmail = (providerUrl: string) => {
+    const content = editingText || text;
+    navigator.clipboard.writeText(content).then(
+      () => {
+        message.success('内容已复制，即将跳转邮箱');
+        setTimeout(() => window.open(providerUrl, '_blank'), 500);
+      },
+      () => message.error('复制失败'),
+    );
+  };
+
+  const emailMenuItems: MenuProps['items'] = emailProviders.map((p) => ({
+    key: p.name,
+    label: p.name,
+    onClick: () => handleSendEmail(p.url),
+  }));
+
   const isEditable = polishDone && !isStreaming && !hasError && text;
 
   if (!text && !isStreaming && !hasError) {
@@ -162,6 +186,13 @@ export default function PolishedPane({
             <Dropdown menu={{ items: exportMenuItems }} placement="bottomRight" trigger={['click']}>
               <Button type="text" size="small" icon={<DownloadOutlined />}>
                 导出
+              </Button>
+            </Dropdown>
+          )}
+          {polishDone && text && scene === 'email' && (
+            <Dropdown menu={{ items: emailMenuItems }} placement="bottomRight" trigger={['click']}>
+              <Button type="text" size="small" icon={<SendOutlined />}>
+                发送邮件
               </Button>
             </Dropdown>
           )}
