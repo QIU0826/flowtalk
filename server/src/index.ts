@@ -13,14 +13,14 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.post('/api/rewrite/sentence', async (req, res) => {
-  const { sentence, context } = req.body || {};
+  const { sentence, context, scene } = req.body || {};
 
   if (!sentence || typeof sentence !== 'string' || sentence.trim().length === 0) {
     res.status(400).json({ error: 'sentence is required' });
     return;
   }
 
-  await rewriteSentence(sentence.trim(), context, res);
+  await rewriteSentence(sentence.trim(), context, scene || 'general', res);
 });
 
 app.post('/api/rewrite/polish', async (req, res) => {
@@ -31,7 +31,7 @@ app.post('/api/rewrite/polish', async (req, res) => {
     return;
   }
 
-  await rewritePolish(text.trim(), scene || '通用', res);
+  await rewritePolish(text.trim(), scene || 'general', res);
 });
 
 app.listen(PORT, () => {

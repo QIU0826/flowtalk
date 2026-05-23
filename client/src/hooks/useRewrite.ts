@@ -10,7 +10,7 @@ interface UseRewriteOptions {
 }
 
 interface UseRewriteReturn {
-  addSentence: (sentence: string) => void;
+  addSentence: (sentence: string, scene: string) => void;
   startPolish: (fullText: string, scene: string) => void;
   isPolishing: boolean;
   reset: () => void;
@@ -110,7 +110,7 @@ export function useRewrite(options: UseRewriteOptions): UseRewriteReturn {
   );
 
   const addSentence = useCallback(
-    (sentence: string) => {
+    (sentence: string, scene: string) => {
       const index = sentenceIndexRef.current++;
 
       // Set timeout for this sentence
@@ -126,6 +126,7 @@ export function useRewrite(options: UseRewriteOptions): UseRewriteReturn {
         '/api/rewrite/sentence',
         {
           sentence,
+          scene,
           context: lastPolishedTextRef.current
             ? { previousPolished: lastPolishedTextRef.current }
             : undefined,

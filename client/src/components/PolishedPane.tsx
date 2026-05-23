@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Typography, Tag } from 'antd';
+import { Typography, Tag, Button, message } from 'antd';
+import { CopyOutlined } from '@ant-design/icons';
 import { SceneType } from '../types';
 
 interface PolishedPaneProps {
@@ -33,6 +34,13 @@ export default function PolishedPane({ text, isStreaming, scene, polishDone }: P
     }
   }, [polishDone, text]);
 
+  const handleCopy = () => {
+    navigator.clipboard.writeText(text).then(
+      () => message.success('已复制到剪贴板'),
+      () => message.error('复制失败'),
+    );
+  };
+
   if (!text && !isStreaming) {
     return (
       <div className="flex items-center justify-center h-full text-gray-400 select-none">
@@ -62,12 +70,30 @@ export default function PolishedPane({ text, isStreaming, scene, polishDone }: P
             完成
           </Typography.Text>
         )}
+        {polishDone && text && (
+          <Button
+            type="text"
+            size="small"
+            icon={<CopyOutlined />}
+            onClick={handleCopy}
+            style={{ marginLeft: 'auto', fontSize: 12 }}
+          >
+            {scene === 'code' ? '复制代码' : '复制'}
+          </Button>
+        )}
       </div>
+
       <Typography.Paragraph
         style={{
-          fontSize: 15,
-          lineHeight: 1.8,
+          fontSize: scene === 'code' ? 13 : 15,
+          lineHeight: scene === 'code' ? 1.6 : 1.8,
           whiteSpace: 'pre-wrap',
+          fontFamily: scene === 'code'
+            ? "'Fira Code', 'Cascadia Code', 'Consolas', monospace"
+            : undefined,
+          background: scene === 'code' ? '#f8f9fa' : undefined,
+          padding: scene === 'code' ? '12px 16px' : undefined,
+          borderRadius: scene === 'code' ? 8 : undefined,
         }}
       >
         {text || (
