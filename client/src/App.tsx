@@ -300,42 +300,25 @@ export default function App() {
       </Header>
 
       <Content className="p-6 max-w-5xl mx-auto w-full">
-        <div className="flex flex-col items-center py-8">
-          <RecordButton
-            isRecording={isRecording}
-            isSupported={isSupported}
-            duration={duration}
-            clickMode={clickMode}
-            onModeChange={setClickMode}
-            onStart={() => {
-              sessionStartRef.current = Date.now();
-              start();
-            }}
-            onStop={stop}
-          />
-        </div>
-
-        <div className="flex items-center justify-between mb-3 mt-4">
+        <div className="flex items-center justify-between mb-3">
           <Typography.Text type="secondary" style={{ fontSize: 13 }}>
             {hasContent ? `${sentences.join('').length} 字` : '按住按钮或空格键开始'}
           </Typography.Text>
-          {hasContent && (
-            <Button
-              type="text"
-              size="small"
-              icon={<ClearOutlined />}
-              onClick={handleClear}
-              disabled={isRecording || isPolishing}
-            >
-              清空
-            </Button>
-          )}
+          <Button
+            type="text"
+            size="small"
+            icon={<ClearOutlined />}
+            onClick={handleClear}
+            disabled={!hasContent || isRecording || isPolishing}
+          >
+            清空
+          </Button>
         </div>
 
         <div
           className="grid gap-4"
           style={{
-            gridTemplateColumns: hasContent ? '1fr 1fr' : '1fr',
+            gridTemplateColumns: '1fr 1fr',
             minHeight: 300,
           }}
         >
@@ -355,27 +338,40 @@ export default function App() {
             />
           </Card>
 
-          {hasContent && (
-            <Card
-              title="改写"
-              size="small"
-              styles={{
-                body: { minHeight: 240, maxHeight: 480, overflow: 'auto' },
-              }}
-            >
-              <PolishedPane
-                text={rightPaneText}
-                isStreaming={isPolishing}
-                polishDone={polishDoneRef.current}
-                scene={scene}
-                hasError={hasRewriteError}
-                sentenceProgress={sentenceProgress}
-                onRetry={handleRetry}
-                onEdit={handleEdit}
-                onRegenerate={handleRegenerate}
-              />
-            </Card>
-          )}
+          <Card
+            title="改写"
+            size="small"
+            styles={{
+              body: { minHeight: 240, maxHeight: 480, overflow: 'auto' },
+            }}
+          >
+            <PolishedPane
+              text={rightPaneText}
+              isStreaming={isPolishing}
+              polishDone={polishDoneRef.current}
+              scene={scene}
+              hasError={hasRewriteError}
+              sentenceProgress={sentenceProgress}
+              onRetry={handleRetry}
+              onEdit={handleEdit}
+              onRegenerate={handleRegenerate}
+            />
+          </Card>
+        </div>
+
+        <div className="flex flex-col items-center py-8">
+          <RecordButton
+            isRecording={isRecording}
+            isSupported={isSupported}
+            duration={duration}
+            clickMode={clickMode}
+            onModeChange={setClickMode}
+            onStart={() => {
+              sessionStartRef.current = Date.now();
+              start();
+            }}
+            onStop={stop}
+          />
         </div>
 
         {error && (
