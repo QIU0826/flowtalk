@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Typography, Tag, Button, message } from 'antd';
+import { Typography, Tag, Button, Input, message } from 'antd';
 import { CopyOutlined, ReloadOutlined } from '@ant-design/icons';
 import { SceneType } from '../types';
 
@@ -11,6 +11,7 @@ interface PolishedPaneProps {
   hasError: boolean;
   sentenceProgress?: { done: number; total: number };
   onRetry?: () => void;
+  onEdit?: (newText: string) => void;
 }
 
 const sceneLabels: Record<SceneType, string> = {
@@ -29,9 +30,17 @@ export default function PolishedPane({
   hasError,
   sentenceProgress,
   onRetry,
+  onEdit,
 }: PolishedPaneProps) {
   const [flash, setFlash] = useState(false);
   const prevPolishDone = useRef(false);
+  const [editingText, setEditingText] = useState(text);
+
+  useEffect(() => {
+    if (!isStreaming) {
+      setEditingText(text);
+    }
+  }, [text, isStreaming]);
 
   useEffect(() => {
     if (polishDone && !prevPolishDone.current && text) {
@@ -46,11 +55,20 @@ export default function PolishedPane({
   }, [polishDone, text]);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(text).then(
+    const copyText = editingText || text;
+    navigator.clipboard.writeText(copyText).then(
       () => message.success('已复制到剪贴板'),
       () => message.error('复制失败'),
     );
   };
+
+  const handleEditBlur = () => {
+    if (editingText !== text && editingText.trim() && onEdit) {
+      onEdit(editingText);
+    }
+  };
+
+  const isEditable = polishDone && !isStreaming && !hasError && text;
 
   if (!text && !isStreaming && !hasError) {
     return (
@@ -59,6 +77,18 @@ export default function PolishedPane({
       </div>
     );
   }
+
+  const commonStyle: React.CSSProperties = {
+    fontSize: scene === 'code' ? 13 : 15,
+    lineHeight: scene === 'code' ? 1.6 : 1.8,
+    fontFamily: scene === 'code'
+      ? "'Fira Code', 'Cascadia Code', 'Consolas', monospace"
+      : undefined,
+    background: scene === 'code' ? '#f8f9fa' : undefined,
+    borderRadius: scene === 'code' ? 8 : undefined,
+    padding: scene === 'code' ? '12px 16px' : undefined,
+    color: hasError && !text ? '#999' : undefined,
+  };
 
   return (
     <div
@@ -94,51 +124,39 @@ export default function PolishedPane({
 
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
           {hasError && !isStreaming && onRetry && (
-            <Button
-              type="text"
-              size="small"
-              icon={<ReloadOutlined />}
-              onClick={onRetry}
-              danger
-            >
+            <Button type="text" size="small" icon={<ReloadOutlined />} onClick={onRetry} danger>
               重试
             </Button>
           )}
           {polishDone && text && (
-            <Button
-              type="text"
-              size="small"
-              icon={<CopyOutlined />}
-              onClick={handleCopy}
-            >
+            <Button type="text" size="small" icon={<CopyOutlined />} onClick={handleCopy}>
               {scene === 'code' ? '复制代码' : '复制'}
             </Button>
           )}
         </div>
       </div>
 
-      <Typography.Paragraph
-        style={{
-          fontSize: scene === 'code' ? 13 : 15,
-          lineHeight: scene === 'code' ? 1.6 : 1.8,
-          whiteSpace: 'pre-wrap',
-          fontFamily: scene === 'code'
-            ? "'Fira Code', 'Cascadia Code', 'Consolas', monospace"
-            : undefined,
-          background: scene === 'code' ? '#f8f9fa' : undefined,
-          padding: scene === 'code' ? '12px 16px' : undefined,
-          borderRadius: scene === 'code' ? 8 : undefined,
-          color: hasError && !text ? '#999' : undefined,
-        }}
-      >
-        {hasError && !text ? '请点击重试按钮重新生成' : text}
-        {isStreaming && (
-          <span className="streaming-cursor" />
-        )}
-        {!text && isStreaming && (
-          <span className="inline-block w-2 h-4 bg-indigo-400 animate-pulse rounded-sm align-middle" />
-        )}
-      </Typography.Paragraph>
+      {isEditable ? (
+        <Input.TextArea
+          value={editingText}
+          onChange={(e) => setEditingText(e.target.value)}
+          onBlur={handleEditBlur}
+          autoSize={{ minRows: 3, maxRows: 14 }}
+          style={{
+            ...commonStyle,
+            resize: 'none',
+            border: '1px solid #e8e8e8',
+          }}
+        />
+      ) : (
+        <Typography.Paragraph style={{ ...commonStyle, whiteSpace: 'pre-wrap' }}>
+          {hasError && !text ? '请点击重试按钮重新生成' : text}
+          {isStreaming && <span className="streaming-cursor" />}
+          {!text && isStreaming && (
+            <span className="inline-block w-2 h-4 bg-indigo-400 animate-pulse rounded-sm align-middle" />
+          )}
+        </Typography.Paragraph>
+      )}
 
       <style>{`
         .streaming-cursor {

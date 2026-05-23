@@ -174,17 +174,25 @@ export async function rewriteSentence(
   sentence: string,
   context: { previousPolished?: string } | undefined,
   scene: string,
+  dictContext: string,
   res: Response,
 ): Promise<void> {
-  const prompt = buildSentencePrompt(sentence, context, scene || 'general');
+  let prompt = buildSentencePrompt(sentence, context, scene || 'general');
+  if (dictContext) {
+    prompt = `${dictContext}\n\n${prompt}`;
+  }
   await streamToSSE(prompt, res, 500);
 }
 
 export async function rewritePolish(
   fullText: string,
   scene: string,
+  dictContext: string,
   res: Response,
 ): Promise<void> {
-  const prompt = buildPolishPrompt(fullText, scene || 'general');
+  let prompt = buildPolishPrompt(fullText, scene || 'general');
+  if (dictContext) {
+    prompt = `${dictContext}\n\n${prompt}`;
+  }
   await streamToSSE(prompt, res, 2000);
 }

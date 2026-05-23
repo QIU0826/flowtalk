@@ -7,6 +7,7 @@ interface UseRewriteOptions {
   onPolishText: (text: string) => void;
   onPolishDone: () => void;
   onError: (error: string) => void;
+  getDictContext?: () => string;
 }
 
 interface UseRewriteReturn {
@@ -17,7 +18,7 @@ interface UseRewriteReturn {
 }
 
 export function useRewrite(options: UseRewriteOptions): UseRewriteReturn {
-  const { onSentenceText, onPolishText, onPolishDone, onError } = options;
+  const { onSentenceText, onPolishText, onPolishDone, onError, getDictContext } = options;
 
   const [isPolishing, setIsPolishing] = useState(false);
 
@@ -127,6 +128,7 @@ export function useRewrite(options: UseRewriteOptions): UseRewriteReturn {
         {
           sentence,
           scene,
+          dictContext: getDictContext?.() || '',
           context: lastPolishedTextRef.current
             ? { previousPolished: lastPolishedTextRef.current }
             : undefined,
@@ -164,7 +166,7 @@ export function useRewrite(options: UseRewriteOptions): UseRewriteReturn {
 
       streamConsume(
         '/api/rewrite/polish',
-        { text: fullText, scene },
+        { text: fullText, scene, dictContext: getDictContext?.() || '' },
         (chunk) => {
           polishedText += chunk;
           onPolishText(polishedText);
