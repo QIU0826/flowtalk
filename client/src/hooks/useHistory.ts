@@ -46,11 +46,27 @@ export function useHistory(): UseHistoryReturn {
   }, [items]);
 
   const addItem = useCallback((item: Omit<HistoryItem, 'id'>) => {
-    const newItem: HistoryItem = {
-      ...item,
-      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-    };
-    setItems((prev) => [newItem, ...prev].slice(0, MAX_ITEMS));
+    setItems((prev) => {
+      // De-duplicate by raw text: update existing entry instead of creating duplicate
+      const existingIdx = prev.findIndex((i) => i.raw === item.raw);
+      if (existingIdx >= 0) {
+        const updated = [...prev];
+        updated[existingIdx] = {
+          ...updated[existingIdx],
+          polished: item.polished,
+          scene: item.scene,
+          timestamp: item.timestamp,
+          duration: item.duration,
+        };
+        const [moved] = updated.splice(existingIdx, 1);
+        return [moved, ...updated];
+      }
+      const newItem: HistoryItem = {
+        ...item,
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      };
+      return [newItem, ...prev].slice(0, MAX_ITEMS);
+    });
   }, []);
 
   const removeItem = useCallback((id: string) => {

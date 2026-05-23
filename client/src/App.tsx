@@ -226,8 +226,9 @@ export default function App() {
     if (isRecordingRef.current || isPolishing) return;
 
     const cached = sceneCacheRef.current.get(scene);
+    if (cached) {
+    }
     if (cached && cached.rawText === rawText && cached.emailStyle === emailStyleRef.current) {
-      // Cache hit: restore immediately, no API call
       setPolishedText(cached.polished);
       polishedTextRef.current = cached.polished;
       polishDoneRef.current = true;
@@ -239,6 +240,32 @@ export default function App() {
     message.info(`正在用「${sceneLabels[sceneRef.current]}」场景重新改写…`, 1.5);
     startPolishRef.current(rawText, sceneRef.current, undefined, emailStyleRef.current);
   }, [scene]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // When emailStyle changes while on email scene, re-polish with new style
+  const emailStyleInitRef = useRef(false);
+  useEffect(() => {
+    if (!emailStyleInitRef.current) {
+      emailStyleInitRef.current = true;
+      return;
+    }
+    if (sceneRef.current !== 'email') return;
+    const rawText = sentencesRef.current.join('');
+    if (!rawText.trim()) return;
+    if (isRecordingRef.current || isPolishing) return;
+
+    const cached = sceneCacheRef.current.get('email');
+    if (cached && cached.rawText === rawText && cached.emailStyle === emailStyleRef.current) {
+      setPolishedText(cached.polished);
+      polishedTextRef.current = cached.polished;
+      polishDoneRef.current = true;
+      setSentenceTexts(new Map());
+      setHasRewriteError(false);
+      return;
+    }
+
+    message.info(`正在用「邮件·${emailStyleRef.current === 'formal' ? '正式' : '轻量'}」风格重写…`, 1.5);
+    startPolishRef.current(rawText, sceneRef.current, undefined, emailStyleRef.current);
+  }, [emailStyle]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleEdit = useCallback(
     (newText: string) => {
